@@ -1,4 +1,4 @@
-package com.example.smartglassesai.ui.theme
+package com.example.aloka.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

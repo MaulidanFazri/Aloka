@@ -1,4 +1,4 @@
-package com.example.smartglassesai
+package com.example.aloka
 
 import android.Manifest
 import android.graphics.Paint
@@ -54,9 +54,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.smartglassesai.ui.AlertLevel
-import com.example.smartglassesai.ui.MainViewModel
-import com.example.smartglassesai.ui.theme.SmartGlassesAITheme
+import com.example.aloka.ui.AlertLevel
+import com.example.aloka.ui.MainViewModel
+import com.example.aloka.ui.theme.AlokaTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SmartGlassesAITheme {
+            AlokaTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     CameraScreen()
                 }

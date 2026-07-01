@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SmartGlassesAI"
+rootProject.name = "Aloka"
 include(":app")

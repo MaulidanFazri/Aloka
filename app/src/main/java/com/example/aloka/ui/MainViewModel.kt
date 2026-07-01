@@ -1,4 +1,4 @@
-package com.example.smartglassesai.ui
+package com.example.aloka.ui
 
 import android.app.Application
 import android.os.VibrationEffect
@@ -7,8 +7,8 @@ import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.camera.core.ImageProxy
 import androidx.lifecycle.AndroidViewModel
-import com.example.smartglassesai.ml.DetectedObject
-import com.example.smartglassesai.ml.YoloDetector
+import com.example.aloka.ml.DetectedObject
+import com.example.aloka.ml.YoloDetector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

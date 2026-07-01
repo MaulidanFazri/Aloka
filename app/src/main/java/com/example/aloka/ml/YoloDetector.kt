@@ -1,9 +1,8 @@
-package com.example.smartglassesai.ml
+package com.example.aloka.ml
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.graphics.RectF
 import androidx.camera.core.ImageProxy
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream

@@ -1,4 +1,4 @@
-package com.example.smartglassesai
+package com.example.aloka
 
 import org.junit.Test
 
