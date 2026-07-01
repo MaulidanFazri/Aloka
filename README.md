@@ -13,7 +13,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/MaulidanFazri/Aloka">
-    <img src="https://raw.githubusercontent.com/MaulidanFazri/Aloka/master/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Logo" width="80" height="80">
+    <img src="https://raw.githubusercontent.com/MaulidanFazri/Aloka/master/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">Aloka</h3>
