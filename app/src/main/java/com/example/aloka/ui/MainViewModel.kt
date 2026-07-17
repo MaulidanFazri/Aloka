@@ -70,6 +70,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
+    private val _isFlashlightOn = MutableStateFlow(false)
+    val isFlashlightOn: StateFlow<Boolean> = _isFlashlightOn.asStateFlow()
+
+    fun toggleFlashlight() {
+        _isFlashlightOn.update { !it }
+        val msg = if (_isFlashlightOn.value) "Senter menyala" else "Senter mati"
+        speak(msg, TextToSpeech.QUEUE_FLUSH)
+    }
+
     fun toggleBlackScreen() {
         _isBlackScreen.update { !it }
         val msg = if (_isBlackScreen.value) "Mode hemat baterai aktif" else "Layar menyala"

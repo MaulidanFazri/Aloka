@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aloka.ui.AlertLevel
 import com.example.aloka.ui.MainViewModel
@@ -60,6 +61,7 @@ import com.example.aloka.ui.theme.AlokaTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,6 +105,7 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
     
     val alertState by viewModel.alertState.collectAsState()
     val isBlackScreen by viewModel.isBlackScreen.collectAsState()
+    val isFlashlightOn by viewModel.isFlashlightOn.collectAsState()
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -114,7 +117,10 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(onDoubleTap = { viewModel.toggleBlackScreen() })
+                detectTapGestures(
+                    onDoubleTap = { viewModel.toggleBlackScreen() },
+                    onLongPress = { viewModel.toggleFlashlight() }
+                )
             }
     ) {
         AndroidView(
@@ -141,7 +147,14 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
 
                     try {
                         provider.unbindAll()
-                        provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                        val camera = provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                        
+                        // Observe flashlight state and control torch
+                        lifecycleOwner.lifecycleScope.launch {
+                            viewModel.isFlashlightOn.collect { isOn ->
+                                camera.cameraControl.enableTorch(isOn)
+                            }
+                        }
                     } catch (e: Exception) {
                         android.util.Log.e("MainActivity", "Error binding camera: $e")
                     }
