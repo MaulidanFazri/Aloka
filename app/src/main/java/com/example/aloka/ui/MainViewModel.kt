@@ -73,10 +73,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val _isFlashlightOn = MutableStateFlow(false)
     val isFlashlightOn: StateFlow<Boolean> = _isFlashlightOn.asStateFlow()
 
+    private var lastAutoTorchTime = 0L
+
+    fun onLightSensorChanged(lux: Float) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Debug Log
+        android.util.Log.d("AlokaDebug", "Sensor Lux: $lux, Current Flash State: ${_isFlashlightOn.value}")
+        
+        if (currentTime - lastAutoTorchTime < 5000) return
+
+        // Ubah threshold ke 10f lagi agar lebih gampang ditrigger pas ditutup jempol
+        if (lux < 10f && !_isFlashlightOn.value) {
+            android.util.Log.d("AlokaDebug", "Triggering AUTO TORCH ON")
+            _isFlashlightOn.value = true
+            speak("Lingkungan gelap, senter otomatis menyala", TextToSpeech.QUEUE_FLUSH)
+            lastAutoTorchTime = currentTime
+        }
+    }
+
     fun toggleFlashlight() {
         _isFlashlightOn.update { !it }
         val msg = if (_isFlashlightOn.value) "Senter menyala" else "Senter mati"
         speak(msg, TextToSpeech.QUEUE_FLUSH)
+        // Set cooldown so auto-torch doesn't immediately override manual action
+        lastAutoTorchTime = System.currentTimeMillis()
     }
 
     fun toggleBlackScreen() {

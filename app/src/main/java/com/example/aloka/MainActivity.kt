@@ -1,7 +1,12 @@
 package com.example.aloka
 
 import android.Manifest
+import android.content.Context
 import android.graphics.Paint
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
@@ -33,9 +38,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -46,6 +53,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -97,15 +105,41 @@ private val BOX_COLORS = listOf(
     Color(0xFF00FF99), Color(0xFFFF0099)
 )
 
-private val DANGER_CLASSES = setOf(1, 2, 4, 5, 8, 9, 10, 11, 12, 14, 16, 17, 19, 20)
+private val DANGER_CLASSES = setOf(2, 4, 5, 9, 10, 11, 12, 16, 17, 20, 21, 22)
 
 @Composable
 fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
     
     val alertState by viewModel.alertState.collectAsState()
     val isBlackScreen by viewModel.isBlackScreen.collectAsState()
     val isFlashlightOn by viewModel.isFlashlightOn.collectAsState()
+
+    // Smart Auto-Torch Logic using Ambient Light Sensor
+    DisposableEffect(context) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+        
+        val sensorListener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent?) {
+                event?.let {
+                    viewModel.onLightSensorChanged(it.values[0])
+                }
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+
+        if (lightSensor != null) {
+            sensorManager.registerListener(sensorListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        } else {
+            android.util.Log.e("MainActivity", "Ambient Light Sensor not found!")
+        }
+        
+        onDispose {
+            sensorManager.unregisterListener(sensorListener)
+        }
+    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -152,7 +186,12 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
                         // Observe flashlight state and control torch
                         lifecycleOwner.lifecycleScope.launch {
                             viewModel.isFlashlightOn.collect { isOn ->
-                                camera.cameraControl.enableTorch(isOn)
+                                android.util.Log.d("AlokaDebug", "Camera Hardware Torch command: $isOn")
+                                try {
+                                    camera.cameraControl.enableTorch(isOn)
+                                } catch (e: Exception) {
+                                    android.util.Log.e("AlokaDebug", "Failed to control torch: ${e.message}")
+                                }
                             }
                         }
                     } catch (e: Exception) {
