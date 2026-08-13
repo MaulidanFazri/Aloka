@@ -57,7 +57,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private var lastSpokenTime = 0L
     private var lastAnalyzeTime = 0L
 
-    private val dangerClasses = setOf(1, 2, 4, 5, 8, 9, 10, 11, 12, 14, 16, 17, 19, 20)
+    private val dangerClasses = setOf(1, 2, 4, 5, 8, 9, 10, 11, 12, 14, 16, 17, 19, 20, 21, 22)
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -108,8 +108,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun analyzeImage(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        // RESTORE EXACT GACOR THROTTLE (200ms = 5 FPS)
-        val throttleInterval = if (_isBlackScreen.value) 1000L else 200L
+        // SPEED UP FOR REAL-WORLD RESPONSIVENESS (50ms = 20 FPS max)
+        val throttleInterval = if (_isBlackScreen.value) 500L else 50L
         
         if ((currentTime - lastAnalyzeTime) < throttleInterval) {
             imageProxy.close()
@@ -152,11 +152,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             newPos = pos
 
             val labelOrPosChanged = newLabel != lastSpokenLabel || newPos != lastSpokenPos
-            val repeatDue = (now - lastSpokenTime) > 2000L
-
+            val timeSinceLastSpeak = now - lastSpokenTime
+            
+            // CEGAH GAGAP: Jangan potong suara bahaya jika baru saja bicara (cooldown 1.5 detik)
+            // kecuali kalau objeknya bener-bener ganti label
             textToSpeak = when {
-                labelOrPosChanged -> "Awas! ${danger.label} $pos"
-                repeatDue && !tts.isSpeaking -> "Awas! ${danger.label} $pos"
+                labelOrPosChanged && (timeSinceLastSpeak > 1500L || newLabel != lastSpokenLabel) -> "Awas! ${danger.label} $pos"
+                timeSinceLastSpeak > 3000L && !tts.isSpeaking -> "Awas! ${danger.label} $pos"
                 else -> null
             }
         } else if (top != null) {

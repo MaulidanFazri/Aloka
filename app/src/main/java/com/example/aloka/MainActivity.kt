@@ -105,7 +105,7 @@ private val BOX_COLORS = listOf(
     Color(0xFF00FF99), Color(0xFFFF0099)
 )
 
-private val DANGER_CLASSES = setOf(2, 4, 5, 9, 10, 11, 12, 16, 17, 20, 21, 22)
+private val DANGER_CLASSES = setOf(1, 2, 4, 5, 8, 9, 10, 11, 12, 14, 16, 17, 19, 20, 21, 22)
 
 @Composable
 fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {

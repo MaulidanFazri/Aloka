@@ -93,7 +93,10 @@ class YoloDetector(context: Context, modelName: String) : AutoCloseable {
             buf.putFloat((v and 0xFF) / 255f)
         }
 
+        val startTime = System.currentTimeMillis()
         interpreter.run(buf, outputArray)
+        val inferenceTime = System.currentTimeMillis() - startTime
+        android.util.Log.d("AlokaDebug", "Inference Speed: ${inferenceTime}ms")
 
         val raw = mutableListOf<DetectedObject>()
         val cW = 1f - 2 * padXRatio
