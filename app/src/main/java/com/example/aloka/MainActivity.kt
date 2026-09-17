@@ -105,7 +105,7 @@ private val BOX_COLORS = listOf(
     Color(0xFF00FF99), Color(0xFFFF0099)
 )
 
-private val DANGER_CLASSES = setOf(1, 2, 4, 5, 8, 9, 10, 11, 12, 14, 16, 17, 19, 20, 21, 22)
+private val DANGER_CLASSES = setOf(1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 15, 16, 18, 19, 20, 21)
 
 @Composable
 fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
@@ -141,6 +141,26 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
         }
     }
 
+    val cameraExecutor = remember { java.util.concurrent.Executors.newSingleThreadExecutor() }
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraExecutor.shutdown()
+        }
+    }
+
+    val bgPaint = remember {
+        Paint().apply {
+            color = android.graphics.Color.argb(180, 0, 0, 0)
+            style = Paint.Style.FILL
+        }
+    }
+    val txtPaint = remember {
+        Paint().apply {
+            textSize = 30f
+            isAntiAlias = true
+        }
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f, targetValue = 1.06f, label = "pulseScale",
@@ -171,11 +191,16 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
                     val preview = Preview.Builder().build().also { 
                         it.setSurfaceProvider(previewView.surfaceProvider) 
                     }
-                    val analysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    val resolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(androidx.camera.core.resolutionselector.AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
                         .build()
 
-                    analysis.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .setResolutionSelector(resolutionSelector)
+                        .build()
+
+                    analysis.setAnalyzer(cameraExecutor) { imageProxy ->
                         viewModel.analyzeImage(imageProxy)
                     }
 
@@ -226,16 +251,9 @@ fun CameraPreviewWithAI(viewModel: MainViewModel = viewModel()) {
                     )
 
                     drawIntoCanvas { canvas ->
-                        val bgPaint = Paint().apply {
-                            color = android.graphics.Color.argb(180, 0, 0, 0)
-                            style = Paint.Style.FILL
-                        }
-                        val txtPaint = Paint().apply {
-                            color = if (isDanger) android.graphics.Color.RED else android.graphics.Color.WHITE
-                            textSize = 30f
-                            isFakeBoldText = isDanger
-                            isAntiAlias = true
-                        }
+                        txtPaint.color = if (isDanger) android.graphics.Color.RED else android.graphics.Color.WHITE
+                        txtPaint.isFakeBoldText = isDanger
+
                         val txt = "${obj.label} ${(obj.confidence * 100).toInt()}%"
                         val tw = txtPaint.measureText(txt)
                         canvas.nativeCanvas.drawRoundRect(l, t - 36f, l + tw + 12f, t, 6f, 6f, bgPaint)

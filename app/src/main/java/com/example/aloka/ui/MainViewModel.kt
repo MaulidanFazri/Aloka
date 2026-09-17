@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.Locale
-import java.util.concurrent.Executors
 
 enum class AlertLevel { CLEAR, INFO, DANGER }
 
@@ -50,14 +49,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     private val tts: TextToSpeech = TextToSpeech(application, this)
     private val vibrator = application.getSystemService(Vibrator::class.java)
-    private val analysisExecutor = Executors.newSingleThreadExecutor()
 
     private var lastSpokenLabel = ""
     private var lastSpokenPos = ""
     private var lastSpokenTime = 0L
     private var lastAnalyzeTime = 0L
 
-    private val dangerClasses = setOf(1, 2, 4, 5, 8, 9, 10, 11, 12, 14, 16, 17, 19, 20, 21, 22)
+    private val dangerClasses = setOf(1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 15, 16, 18, 19, 20, 21)
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -79,15 +77,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         val currentTime = System.currentTimeMillis()
         
         // Debug Log
-        android.util.Log.d("AlokaDebug", "Sensor Lux: $lux, Current Flash State: ${_isFlashlightOn.value}")
+        Log.d("AlokaDebug", "Sensor Lux: $lux, Current Flash State: ${_isFlashlightOn.value}")
         
         if (currentTime - lastAutoTorchTime < 5000) return
 
-        // Ubah threshold ke 10f lagi agar lebih gampang ditrigger pas ditutup jempol
         if (lux < 10f && !_isFlashlightOn.value) {
-            android.util.Log.d("AlokaDebug", "Triggering AUTO TORCH ON")
+            Log.d("AlokaDebug", "Triggering AUTO TORCH ON")
             _isFlashlightOn.value = true
             speak("Lingkungan gelap, senter otomatis menyala", TextToSpeech.QUEUE_FLUSH)
+            lastAutoTorchTime = currentTime
+        } else if (lux > 40f && _isFlashlightOn.value) {
+            Log.d("AlokaDebug", "Triggering AUTO TORCH OFF")
+            _isFlashlightOn.value = false
+            speak("Cahaya terang, senter mati otomatis", TextToSpeech.QUEUE_FLUSH)
             lastAutoTorchTime = currentTime
         }
     }
@@ -96,7 +98,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         _isFlashlightOn.update { !it }
         val msg = if (_isFlashlightOn.value) "Senter menyala" else "Senter mati"
         speak(msg, TextToSpeech.QUEUE_FLUSH)
-        // Set cooldown so auto-torch doesn't immediately override manual action
         lastAutoTorchTime = System.currentTimeMillis()
     }
 
@@ -108,24 +109,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun analyzeImage(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        // SPEED UP FOR REAL-WORLD RESPONSIVENESS (50ms = 20 FPS max)
-        val throttleInterval = if (_isBlackScreen.value) 500L else 50L
-        
-        if ((currentTime - lastAnalyzeTime) < throttleInterval) {
-            imageProxy.close()
-            return
+        if (_isBlackScreen.value) {
+            if ((currentTime - lastAnalyzeTime) < 500L) {
+                imageProxy.close()
+                return
+            }
         }
         lastAnalyzeTime = currentTime
 
-        analysisExecutor.execute {
-            try {
-                val detections = detector?.analyze(imageProxy) ?: emptyList()
-                processDetections(detections)
-            } catch (e: Exception) {
-                Log.e("MainViewModel", "Error analyzing image: ${e.message}")
-            } finally {
-                imageProxy.close()
-            }
+        try {
+            val detections = detector?.analyze(imageProxy) ?: emptyList()
+            processDetections(detections)
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "Error analyzing image: ${e.message}")
+        } finally {
+            imageProxy.close()
         }
     }
 
@@ -154,8 +152,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             val labelOrPosChanged = newLabel != lastSpokenLabel || newPos != lastSpokenPos
             val timeSinceLastSpeak = now - lastSpokenTime
             
-            // CEGAH GAGAP: Jangan potong suara bahaya jika baru saja bicara (cooldown 1.5 detik)
-            // kecuali kalau objeknya bener-bener ganti label
             textToSpeak = when {
                 labelOrPosChanged && (timeSinceLastSpeak > 1500L || newLabel != lastSpokenLabel) -> "Awas! ${danger.label} $pos"
                 timeSinceLastSpeak > 3000L && !tts.isSpeaking -> "Awas! ${danger.label} $pos"
@@ -175,7 +171,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                 "${top.label}, $pos"
             } else null
         } else {
-            newAlert = AlertState(AlertLevel.CLEAR, detectedObjects = detections)
+            newAlert = AlertState(AlertLevel.CLEAR, detectedObjects = emptyList())
             newLabel = ""
             newPos = ""
             textToSpeak = null
@@ -222,6 +218,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         detector?.close()
         tts.stop()
         tts.shutdown()
-        analysisExecutor.shutdown()
     }
 }
